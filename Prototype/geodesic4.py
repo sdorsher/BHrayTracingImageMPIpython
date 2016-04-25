@@ -46,18 +46,20 @@ def initializeElliptical(eccentricity,semilatusr,Rs):
     phi = 0.
     t = 0.
     utheta = 0.
-    angularL = semilatusr*semilatusr*0.25*Rs*Rs/(semilatusr-3.-eccentricity*eccentricity)
-    energy=(semilatusr-2.-2.*eccentricity)*(semilatusr-2.+2.*eccentricity)/semilatusr/(semilatusr-3.-eccentricity*eccentricity)
+    temp = 1./(semilatusr - 3. - eccentricity*eccentricity)
+    angularL = 0.5*semilatusr*Rs*sqrt(temp)
+    energy=sqrt((semilatusr-2.-2.*eccentricity)*(semilatusr-2.+2.*eccentricity)/semilatusr*temp)
     uphi = angularL/r2/r2
     ur = 0.
-    ut = energy/(1.-Rs/r2)
+    ut = energy/sqrt(1.-Rs/r2)
     return np.array([t,r2,theta,phi,ut,ur,utheta,uphi])
 
-def adaptiveRK4(t,y,h,func,arg,yscale,epsilon):
+def adaptiveRK4(t,y,h,func,maxfunc,arg,yscale,epsilon):
     a=np.array([0, .2, .3, .6, 1., 7./8.])
     b=np.array([[0.,0.,0.,0.,0.],[.2,0.,0.,0.,0.],[3./40.,9./40.,0.,0.,0.],[3./10., -9./10., 6./5., 0., 0.],[-11./54., 2.5, -70./27., 35./27., 0.], [1631./55296., 175./512., 575./13824., 44275./110592., 253./4096.]])
     c = np.array([37./378., 0., 250./621., 125./594., 0., 512./1771.])
     cstar = np.array([2825./27648., 0., 18575./48384., 13525./55296., 277./14336., 0.25])
+    dc = np.array([277./64512.,0.,-6925./370944.,6925./202752.,277./14336.,-277./7084.])
     safetyfac = 0.9
     pgrow = 0.20
     pshrink =0.25
@@ -65,7 +67,7 @@ def adaptiveRK4(t,y,h,func,arg,yscale,epsilon):
     hnew=h/2.
     lena=len(a)
     leny=len(y)
-    hlast = h
+    #hlast = h
     while True:
         # j and i are reversed from Numerical Recipes book (page 711)
         #loop over y indices
@@ -81,37 +83,45 @@ def adaptiveRK4(t,y,h,func,arg,yscale,epsilon):
                     #update for next term of k in calculation
                     yprimearg[n]+=b[j,i]*k[n,i]
             k[:,j]=h*func(tprimearg,yprimearg,arg)
-
         yprime = y+np.sum(np.multiply(c,k),axis=1)
-
+        yerr =  np.sum(np.multiply(dc,k),axis=1)
         yprimestar =np.copy(y)+ np.sum(np.multiply(cstar,k),axis=1)
         #delta0 = np.absolute(np.multiply(epsilon,yscale))
-        yerr = yprime - yprimestar
-        errmax = max(np.absolute(yerr/yscale))
+        #yerr = yprime - yprimestar
+        errmax = maxfunc(yerr,yscale,yprime)
         errmax/=epsilon
         if (errmax>1):
             hnew = safetyfac*h*pow(errmax,pshrink)
             if(hnew<0.1*h):
                 hnew=.1*h
+            h=hnew
         else:
             if(errmax>errcon):
                 hnew = safetyfac*h*pow(errmax,pgrow)
             else:
                 hnew = 5.*h
-            break
+            return t+h,yprimestar,hnew
             #false break for testing
             #break    
             #problem has something to do with break conditions
             #print("breaking")
-        hlast = h
-        h = hnew
     #tprime = t+h
     #print(h)
-    tprime = t+hlast
+    tprime = t+h
     return tprime,yprimestar,hnew
     #return tprime,yprimestar,h
 
-    
+def linearMaxFunc(yerr,yscale,yprime):
+    errmax = max(np.absolute(yerr/yscale))
+    return errmax
+
+def sphericalMaxFunc(yerr,yscale,x):
+    rscale=yscale[1]/x[1]
+    invst = 1./sin(x[2])
+    errmax = max(abs(x[0]/yscale[0]),abs(x[1]/yscale[1]),abs(x[2]/yscale[2]*rscale),abs(x[3]/yscale[3]*invst*rscale),abs(x[4]/yscale[4]),abs(x[5]/yscale[5]),abs(x[6]/yscale[6]*rscale),abs(x[7]/yscale[7]*rscale*invst))
+    return errmax
+
+
 def rk4(t,y,h,func,arg):
     k1=h*func(t,y,arg) #no t on right hand side of these equations
     k2 = h*func(t+0.5*h,y+0.5*k1,arg)
@@ -138,12 +148,16 @@ def geodesic(lamb,x,Rs):
     cur = temp1*invrmRs
     cutheta = rmRs
     cuphi = rmRs*st*st
+    #print("x=",x)
     dur =cut*x[4]*x[4]+cur*x[5]*x[5]+cutheta*x[6]*x[6]+cuphi*x7sq
     #calculate dutheta
-    dutheta = -2.*x[6]*x5invr+ct*st*x7sq
+    dutheta = -2.*x[6]*x5invr++ct*st*x7sq
     #calculate duphi
-    duphi =-2.*(x[5]*invr+ct/st*x[6])*x[7] 
-    return np.array([x[4], x[5], x[6], x[7], dut, dur, dutheta, duphi])
+    duphi =-2.*(x5invr+ct/st*x[6])*x[7]
+    rhs=np.array([x[4],x[5],x[6],x[7],dut, dur, dutheta, duphi])
+    #print(cut,cur,cutheta,cuphi)
+    #print("rhs=",rhs)
+    return np.array([x[4],x[5],x[6],x[7],dut, dur, dutheta, duphi])
 
 #parabola test
 def parabola(t,y,ab):
@@ -172,21 +186,23 @@ def test():
     phase =0.
     tiny = 1.e-30
     params = np.array([amp, omega, phase])
-    t=np.zeros(100)
+    t=np.zeros(1000)
     y=np.zeros((len(t),2))
     h=1.e-2
     yn=np.zeros(2)
     yn[1]=1.0
     tn=0.0
     yscale =np.absolute(yn)+np.absolute(np.multiply(h,sho(tn,yn,omega)))+tiny
-    epsilon=1.e-6
+    epsilon=1.e-4
     for n in range(0,len(t)):
         yscale =np.absolute(yn)+np.absolute(h*sho(tn,yn,omega))+tiny
-        print(n,yscale)
+        #print(n,yscale)
         t[n]=tn
         y[n,:]=yn
-#        tn,yn =rk4(tn,yn,h,sho,omega)
-        tn,yn,h=adaptiveRK4(tn,yn,h,sho,omega,yscale,epsilon)
+        #tn,yn =rk4(tn,yn,h,sho,omega)
+        #print(tn,yn,h,"hello")
+        tn,yn,h=adaptiveRK4(tn,yn,h,sho,linearMaxFunc,omega,yscale,epsilon)
+        #print(tn,yn,h)
     pyplot.figure()
     pyplot.xlabel("Time")
 #    tn,yn,h=adaptiveRK4(tn,yn,h,sho,omega,yscale,epsilon)
@@ -218,11 +234,12 @@ skypixelwidth = 4096
 
 def main():
     #image plane's center is at Rplane<Router (radius of outer shell)
-    h=1.e-2
+    h=1.e-3
+    #h=1.e-4
     Router = 1000.
     Rplane = 700.
     Rs = 1.
-    #imagewidth = 19.94175024251333
+    #imagewidth = 19.94175024251333s
     #imageheight = 10.73786551519949
     #inside horizon
     #pixelwidth =13
@@ -235,10 +252,10 @@ def main():
     imagewidth = 20;
     imageheight = 10;
     tiny = 1.e-30
-    epsilon=1.e-10
+    epsilon=1.e-8
     pixelcoord = np.array([101,51])
     #coords = initialize(pixelcoord,Rplane,pixelheight,pixelwidth,skypixelwidth,skypixelheight,imagewidth,imageheight,Rs)
-    eccentricity = 0.0
+    eccentricity = 0.2
     semilatusr = 10.0
     #HERE
     coords = initializeElliptical(eccentricity,semilatusr,Rs)
@@ -250,11 +267,12 @@ def main():
     phi=coords[3]
 #    while(False):
     #while(r<=Router):
-    while(phi<4.*pi):
+    while(phi<2.*pi):
+    #while(n<2):
         #lamb,coords,deltalamb =adaptiveRK4(lamb,coords,deltalamb,geodesic,Rs,yscale,epsilon)
         yscale =np.absolute(coords)+np.absolute(h*geodesic(lamb,coords,Rs))+tiny
-#        lamb,coords =rk4(lamb,coords,deltalamb,geodesic,Rs)
-        lamb,coords,h=adaptiveRK4(lamb,coords,h,geodesic,Rs,yscale,epsilon)
+        #lamb,coords =rk4(lamb,coords,deltalamb,geodesic,Rs)
+        lamb,coords,h=adaptiveRK4(lamb,coords,h,geodesic,linearMaxFunc,Rs,yscale,epsilon)
         r=coords[1]
         phi=coords[3]
         if r<Rs:
@@ -264,21 +282,20 @@ def main():
         if(n%100==0):
             print(n,coords[0],r,coords[2],phi,h)
         n+=1
-    print(coords)
     #I am not sure if the following is correct
+    print coords
     if(coords[2]<0.):
-        temp = (-coords[2])%(2.*pi)
+        temp = (-coords[2])%(pi)
         coords[2]=pi-temp
     else:
         coords[2]%=pi
-
+            
     if(coords[3]<0.):
         temp=(-coords[3])%(2.*pi)
         coords[3]=2.*pi-temp
     else:
         coords[3]%=(2.*pi)
-    print coords
-
+        
     if (color==1):
         print("color=sky")
     else:
