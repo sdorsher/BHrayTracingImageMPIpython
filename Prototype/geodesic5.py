@@ -52,7 +52,7 @@ def initializeElliptical(eccentricity,semilatusr,Rs):
     energy=sqrt((semilatusr-2.-2.*eccentricity)*(semilatusr-2.+2.*eccentricity)/semilatusr*temp)
     uphi = angularL/r2/r2
     ur = 0.
-    ut = energy/sqrt(1.-Rs/r2)
+    ut = energy/(1.-Rs/r2)
     return np.array([t,r2,theta,phi,ut,ur,utheta,uphi])
 
 def adaptiveRK4(t,y,h,func,maxfunc,arg,yscale,epsilon):
@@ -173,7 +173,6 @@ def geodesic(lamb,x,Rs):
     duphi =-2.*(x5invr+ct/st*x[6])*x[7]
     rhs=np.array([x[4],x[5],x[6],x[7],dut, dur, dutheta, duphi])
     #print(cut,cur,cutheta,cuphi)
-    print("rhs=",rhs)
     return np.array([x[4],x[5],x[6],x[7],dut, dur, dutheta, duphi])
 
 #parabola test
@@ -275,11 +274,11 @@ def main():
     #xout = np.zeros((len(affine),8))
     #hs = np.zeros(len(affine))
     pixelcoord = np.array([101,51])
-    #coords = initialize(pixelcoord,Rplane,pixelheight,pixelwidth,skypixelwidth,skypixelheight,imagewidth,imageheight,Rs)
+    coords = initialize(pixelcoord,Rplane,pixelheight,pixelwidth,skypixelwidth,skypixelheight,imagewidth,imageheight,Rs)
     eccentricity = 0.2
     semilatusr = 10.0
     #HERE
-    coords = initializeElliptical(eccentricity,semilatusr,Rs)
+    #coords = initializeElliptical(eccentricity,semilatusr,Rs)
     print coords
     r=coords[1]
     lamb=0.
@@ -288,9 +287,9 @@ def main():
     f= open("output.txt", "w")
     phi=coords[3]
     #while(True):
-    #while(r<=Router):
+    while(r<=Router):
     #while(phi<2.*pi):
-    while(n<2):
+    #while(n<2):
     #for i in range(len(affine)):
         #lamb,coords,deltalamb =adaptiveRK4(lamb,coords,deltalamb,geodesic,Rs,yscale,epsilon)
         yscale =np.absolute(coords)+np.absolute(h*geodesic(lamb,coords,Rs))+tiny
@@ -302,7 +301,7 @@ def main():
         for item in outlist:
             f.write("%s\t" % item)
         f.write("\n")
-        lamb,coords,h=adaptiveRK4(lamb,coords,h,geodesic,ignoretMaxFunc,Rs,yscale,epsilon)
+        lamb,coords,h=adaptiveRK4(lamb,coords,h,geodesic,linearMaxFunc,Rs,yscale,epsilon)
         r=coords[1]
         phi=coords[3]
         if r<Rs:
