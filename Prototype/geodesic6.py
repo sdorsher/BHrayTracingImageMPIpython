@@ -256,85 +256,85 @@ def main():
     Router = 1000.
     Rplane = 700.
     Rs = 2.
-    #imagewidth = 19.94175024251333s
-    #imageheight = 10.73786551519949
-    #inside horizon
-    #pixelwidth =13
-    #pixelheight =7
     pixelwidth = 101
     pixelheight = 51
     deltalamb = 1.e-1
     #epsilon = 1.e-6
     #yscale = [500.,500.,pi,2.*pi,-1.,1.,1.,1.]
-    imagewidth = 20;
-    imageheight = 10;
+    imagewidth = 200;
+    imageheight = 100;
     tiny = 1.e-30
     epsilon=1.e-8
-    #affine = np.zeros(20000)
+    eccentricity = 0.2
+    Rfac = 1.+1.e-10
+    heps = 1.e-14
+    semilatusr = 10.0    #affine = np.zeros(20000)
     #xout = np.zeros((len(affine),8))
     #hs = np.zeros(len(affine))
-    pixelcoord=np.array([1,1])
-    #    pixelcoord = np.array([101,51])
-    coords = initialize(pixelcoord,Rplane,pixelheight,pixelwidth,skypixelwidth,skypixelheight,imagewidth,imageheight,Rs)
-    eccentricity = 0.2
-    semilatusr = 10.0
-    #HERE
-    #coords = initializeElliptical(eccentricity,semilatusr,Rs)
-    print coords
-    r=coords[1]
-    lamb=0.
-    color = 1
-    n=0
-    f= open("output.txt", "w")
-    phi=coords[3]
-    #while(True):
-    while(r<=Router):
-    #while(phi<2.*pi):
-    #while(n<2):
-    #for i in range(len(affine)):
-        #lamb,coords,deltalamb =adaptiveRK4(lamb,coords,deltalamb,geodesic,Rs,yscale,epsilon)
-        yscale =np.absolute(coords)+np.absolute(h*geodesic(lamb,coords,Rs))+tiny
-        #affine[i]=lamb
-        #hs[i] = h
-        #xout[i,:]=coords
-        #lamb,coords =rk4(lamb,coords,deltalamb,geodesic,Rs)
-        outlist=np.array([lamb,coords[0],coords[1],coords[2],coords[3],coords[4],coords[5],coords[6],coords[7],h,yscale[0],yscale[1],yscale[2],yscale[3],yscale[4],yscale[4],yscale[5],yscale[6],yscale[7]])
-        for item in outlist:
-            f.write("%s\t" % item)
-        f.write("\n")
-        lamb,coords,h=adaptiveRK4(lamb,coords,h,geodesic,linearMaxFunc,Rs,yscale,epsilon)
-        r=coords[1]
-        phi=coords[3]
-        if r<Rs:
-            color = 0
-            break
-        #handle maximum number of integrations
-#        if(n%1==0):
- #           print(n,coords)
-        n+=1
-    #I am not sure if the following is correct
-    print coords
-    f.close()
-    if(coords[2]<0.):
-        temp = (-coords[2])%(pi)
-        coords[2]=pi-temp
-    else:
-        coords[2]%=pi
-            
-    if(coords[3]<0.):
-        temp=(-coords[3])%(2.*pi)
-        coords[3]=2.*pi-temp
-    else:
-        coords[3]%=(2.*pi)
+    for ypix in range(1,pixelheight,int(pixelheight/10)):
+        for xpix in range(1,pixelwidth,int(pixelwidth/10)):
+            pixelcoord=np.array([xpix,ypix])
+            print(pixelcoord)
+            #pixelcoord=np.array([101,51]) #original, off by one?        
+            #pixelcoord = np.array([100,50])
+            coords = initialize(pixelcoord,Rplane,pixelheight,pixelwidth,skypixelwidth,skypixelheight,imagewidth,imageheight,Rs)
+            #coords = initializeElliptical(eccentricity,semilatusr,Rs)
+            print coords
+            r=coords[1]
+            lamb=0.
+            color = 1
+            n=0
+            f= open("OutDirBigger/output{0}_{1}.txt".format(xpix,ypix), "w")
+            phi=coords[3]
+            #while(True):
+            while(r<=Router):
+                #while(phi<2.*pi):
+                #while(n<2):
+                #for i in range(len(affine)):
+                #lamb,coords,deltalamb =adaptiveRK4(lamb,coords,deltalamb,geodesic,Rs,yscale,epsilon)
+                yscale =np.absolute(coords)+np.absolute(h*geodesic(lamb,coords,Rs))+tiny
+                #affine[i]=lamb
+                #hs[i] = h
+                #xout[i,:]=coords
+                #lamb,coords =rk4(lamb,coords,deltalamb,geodesic,Rs)
+                outlist=np.array([lamb,coords[0],coords[1],coords[2],coords[3],coords[4],coords[5],coords[6],coords[7],h,yscale[0],yscale[1],yscale[2],yscale[3],yscale[4],yscale[4],yscale[5],yscale[6],yscale[7]])
+                for item in outlist:
+                    f.write("%s\t" % item)
+                f.write("\n")
+                lamb,coords,h=adaptiveRK4(lamb,coords,h,geodesic,linearMaxFunc,Rs,yscale,epsilon)
+                r=coords[1]
+                phi=coords[3]
+                if (r<Rfac*Rs) and (h<heps):
+                    color = 0
+                    break
+                #handle maximum number of integrations
+                #        if(n%1==0):
+                #           print(n,coords)
+                n+=1
+                if((n%10000)==0): print(n,r,coords[2],phi,h)
+            #I am not sure if the following is correct
+            print coords
+            f.close()
+            if(coords[2]<0.):
+                temp = (-coords[2])%(pi)
+                coords[2]=pi-temp
+            else:
+                coords[2]%=pi
+                    
+            if(coords[3]<0.):
+                temp=(-coords[3])%(2.*pi)
+                coords[3]=2.*pi-temp
+            else:
+                coords[3]%=(2.*pi)
         
-    if (color==1):
-        print("color=sky")
-    else:
-        print("color=blackhole")
-    rmRs2 = coords[1]-Rs
-    testnull = -rmRs2/coords[1]*coords[4]*coords[4]+coords[5]*coords[5]*coords[1]/rmRs2+coords[1]*coords[1]*(coords[6]*coords[6]+sin(coords[2])*sin(coords[2])*coords[7]*coords[7])
-    print(testnull)
-    print(testnull/max(np.absolute(coords[4:8])))
+            if (color==1):
+                print("color=sky")
+            else:
+                print("color=blackhole")
+            rmRs2 = coords[1]-Rs
+            testnull = -rmRs2/coords[1]*coords[4]*coords[4]+coords[5]*coords[5]*coords[1]/rmRs2+coords[1]*coords[1]*(coords[6]*coords[6]+sin(coords[2])*sin(coords[2])*coords[7]*coords[7])
+            print(testnull)
+            print(testnull/max(np.absolute(coords[4:8])))
 
 #    pyplot.figure()
 #    pyplot.plot(affine,xout[:,0])
