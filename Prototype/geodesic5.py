@@ -13,7 +13,8 @@ def initialize(pixelcoord,Rplane,pixelheight,pixelwidth,skypixelwidth,skypixelhe
     z = (pixelcoord[1]-pixelheight/2.)*imageheight/float(pixelheight)
     r = sqrt(x*x+y*y+z*z)
     phi = atan(y/x)
-    theta = atan(sqrt(x*x+y*y)/r)
+    theta = acos(z/r)
+    print(x,y,z,r,theta,phi)
 
     #initial u perpendicular to plane.
     #magnitude of u is arbitrary-- affine parameter makes it rescalable

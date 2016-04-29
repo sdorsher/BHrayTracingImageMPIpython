@@ -11,9 +11,9 @@ def initialize(pixelcoord,Rplane,pixelheight,pixelwidth,skypixelwidth,skypixelhe
     x = Rplane
     y = (pixelcoord[0]-pixelwidth/2.)*imagewidth/float(pixelwidth)
     z = (pixelcoord[1]-pixelheight/2.)*imageheight/float(pixelheight)
-    r = sqrt(x*x+y*y+z*z)
+    r= sqrt(x*x+y*y+z*z)
     phi = atan(y/x)
-    theta = atan(sqrt(x*x+y*y)/r)
+    theta = acos(z/r)
 
     #initial u perpendicular to plane.
     #magnitude of u is arbitrary-- affine parameter makes it rescalable
@@ -256,13 +256,14 @@ def main():
     Router = 1000.
     Rplane = 700.
     Rs = 2.
-    pixelwidth = 101
-    pixelheight = 51
+    pixelwidth = 1001
+    pixelheight = 1001
+    every = 100
     deltalamb = 1.e-1
     #epsilon = 1.e-6
     #yscale = [500.,500.,pi,2.*pi,-1.,1.,1.,1.]
     imagewidth = 200;
-    imageheight = 100;
+    imageheight = 200;
     tiny = 1.e-30
     epsilon=1.e-8
     eccentricity = 0.2
@@ -271,13 +272,13 @@ def main():
     semilatusr = 10.0    #affine = np.zeros(20000)
     #xout = np.zeros((len(affine),8))
     #hs = np.zeros(len(affine))
-    for ypix in range(1,pixelheight,int(pixelheight/10)):
-        for xpix in range(1,pixelwidth,int(pixelwidth/10)):
+    for ypix in range(1,pixelheight,every):
+        for xpix in range(1,pixelwidth,every):
             pixelcoord=np.array([xpix,ypix])
             print(pixelcoord)
             #pixelcoord=np.array([101,51]) #original, off by one?        
             #pixelcoord = np.array([100,50])
-            coords = initialize(pixelcoord,Rplane,pixelheight,pixelwidth,skypixelwidth,skypixelheight,imagewidth,imageheight,Rs)
+            coords = initialize(pixelcoord,Rplane,pixelheight,pixelwidth,skypixelwidth,skypixelheight,imagewidth,imageheight,Rs).copy()
             #coords = initializeElliptical(eccentricity,semilatusr,Rs)
             print coords
             r=coords[1]
