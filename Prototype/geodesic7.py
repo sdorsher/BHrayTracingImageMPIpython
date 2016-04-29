@@ -274,9 +274,11 @@ def main():
     #xout = np.zeros((len(affine),8))
     #hs = np.zeros(len(affine))
     img = PIL.Image.open("TychoSkymapIIt5_04096x02048.jpg")
+    #im2 = img.load()
     rgb_im = img.convert('RGB')
     img_size=rgb_im.size
-    rgb_telescope = np.zeros((pixelwidth,pixelheight,3),'uint8')
+    rgb_telescope = PIL.Image.new('RGB', (pixelwidth,pixelheight))
+#    rgb_telescope = np.zeros([pixelwidth,pixelheight,3])
     for ypix in range(1,pixelheight,every):
         for xpix in range(1,pixelwidth,every):
             pixelcoord=np.array([xpix,ypix])
@@ -346,10 +348,12 @@ def main():
                 xout = int(coords[3]*img_size[0]/2./pi)
                 yout = int(coords[2]*img_size[1]/pi)
                 print(xout,yout)
-                for i in range(3):
-                    rgb_telescope[xpix,ypix,i]=rgb_im[xout,yout,i]
+#                print(rgb_telescope[xpix,ypix])
+#                print(rgb_im[xout,yout])
+                rgb_telescope[xpix,ypix]=rgb_im[xout,yout]
             img_telescope=PIL.Image.fromarray(rgb_telescope)
     img_telescope.save("telescopeImage.jpeg")
+    #scipy.imsave?
 #    pyplot.figure()
 #    pyplot.plot(affine,xout[:,0])
 #    pyplot.show()
