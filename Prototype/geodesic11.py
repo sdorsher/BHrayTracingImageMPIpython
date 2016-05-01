@@ -1,6 +1,8 @@
 import numpy as np
-from math import pi,sin,cos,sqrt,atan,acos,tan
-from matplotlib import pyplot
+from math import pi,sin,cos,sqrt,atan,acos
+from matplotlib import pyplot,image
+import PIL, png
+from scipy import misc
 
 # t is lamb, affine parameter
 # y is u, four velocity, or x, four position
@@ -22,10 +24,12 @@ def initialize(pixelcoord,Rplane,pixelheight,pixelwidth,skypixelwidth,skypixelhe
     uy = 0.
     uz = 0.
     ux = 1.
-    rhosq = x*x + y*y
-    facrrho= rhosq+r*r
+
+
     invr = 1./r
     invrsq = invr*invr
+    #rhosq = x*x + y*y
+    #facrrho= rhosq+r*r
     #for this specific case, where ux = 1:
     ur = -x/r
     #utheta = -x*z*z/sqrt(rhosq)/r/facrrho
@@ -40,8 +44,8 @@ def initialize(pixelcoord,Rplane,pixelheight,pixelwidth,skypixelwidth,skypixelhe
 #    rmRs2 = coords[1]-Rs
 #    testnull = -rmRs2/coords[1]*coords[4]*coords[4]+coords[5]*coords[5]*coords[1]/rmRs2+coords[1]*coords[1]*(coords[6]*coords[6]+sin(coords[2])*sin(coords[2])*coords[7]*coords[7])
     testnull = -rmRs/r*ut*ut+ur*ur*r/rmRs+r*r*(utheta*utheta+st*st*uphi*uphi)
-    print(testnull)
-    print(testnull/max(np.absolute(initcoords[4:8])))
+    #print(testnull)
+    #print(testnull/max(np.absolute(initcoords[4:8])))
     return initcoords
 
 def initializeElliptical(eccentricity,semilatusr,Rs):
@@ -65,7 +69,7 @@ def adaptiveRK4(t,y,h,func,maxfunc,arg,yscale,epsilon):
     c = np.array([37./378., 0., 250./621., 125./594., 0., 512./1771.])
     cstar = np.array([2825./27648., 0., 18575./48384., 13525./55296., 277./14336., 0.25])
     dc = np.array([277./64512.,0.,-6925./370944.,6925./202752.,277./14336.,-277./7084.])
-    fadapt = open("adaptout.txt", "a")
+#    fadapt = open("adaptout.txt", "a")
     safetyfac = 0.9
     pgrow =-0.20
     pshrink =-0.25
@@ -101,20 +105,20 @@ def adaptiveRK4(t,y,h,func,maxfunc,arg,yscale,epsilon):
             if(hnew<0.1*h):
                 hnew=.1*h
             h=hnew
-            outlist=np.array([t,yprime[0],yprime[1],yprime[2],yprime[3],yprime[4],yprime[5],yprime[6],yprime[7],h,0])
-            for item in outlist:
-                fadapt.write("%s\t" % item)
-            fadapt.write("\n")
+#            outlist=np.array([t,yprime[0],yprime[1],yprime[2],yprime[3],yprime[4],yprime[5],yprime[6],yprime[7],h,0])
+#            for item in outlist:
+#                fadapt.write("%s\t" % item)
+#            fadapt.write("\n")
         else:
             if(errmax>errcon):
                 hnew = safetyfac*h*pow(errmax,pgrow)
             else:
                 hnew = 5.*h
-            outlist=np.array([t,yprime[0],yprime[1],yprime[2],yprime[3],yprime[4],yprime[5],yprime[6],yprime[7],h,1])
-            for item in outlist:
-                fadapt.write("%s\t" % item)
-            fadapt.write("\n")
-            fadapt.close()
+#            outlist=np.array([t,yprime[0],yprime[1],yprime[2],yprime[3],yprime[4],yprime[5],yprime[6],yprime[7],h,1])
+#            for item in outlist:
+#                fadapt.write("%s\t" % item)
+#            fadapt.write("\n")
+#            fadapt.close()
             return t+h,yprimestar,hnew
             #false break for testing
             #break    
@@ -123,7 +127,7 @@ def adaptiveRK4(t,y,h,func,maxfunc,arg,yscale,epsilon):
     #tprime = t+h
     #print(h)
     tprime = t+h
-    fadapt.close()
+#    fadapt.close()
     return tprime,yprimestar,hnew
 #    return tprime,yprimestar,h
 
@@ -172,9 +176,9 @@ def geodesic(lamb,x,Rs):
     #print("x=",x)
     dur =cut*x[4]*x[4]+cur*x[5]*x[5]+cutheta*x[6]*x[6]+cuphi*x7sq
     #calculate dutheta
-    dutheta = -2.*x[6]*x5invr+0.5*sin(2.*x[2])*x7sq
+    dutheta = -2.*x[6]*x5invr+ct*st*x7sq
     #calculate duphi
-    duphi =-2.*(x5invr+1./tan(x[2])*x[6])*x[7]
+    duphi =-2.*(x5invr+ct/st*x[6])*x[7]
     rhs=np.array([x[4],x[5],x[6],x[7],dut, dur, dutheta, duphi])
     #print(cut,cur,cutheta,cuphi)
     return np.array([x[4],x[5],x[6],x[7],dut, dur, dutheta, duphi])
@@ -249,8 +253,8 @@ def test():
     return 0
     
 #sky is 4096 by 2048
-skypixelheight = 2048
-skypixelwidth = 4096
+#skypixelheight = 2048
+#skypixelwidth = 4096
 
 def main():
     #image plane's center is at Rplane<Router (radius of outer shell)
@@ -260,9 +264,9 @@ def main():
     Router = 1000.
     Rplane = 700.
     Rs = 2.
-    pixelwidth = 1001
-    pixelheight = 1001
-    every = 100
+    pixelwidth = 51
+    pixelheight = 51
+    every = 1
     deltalamb = 1.e-1
     #epsilon = 1.e-6
     #yscale = [500.,500.,pi,2.*pi,-1.,1.,1.,1.]
@@ -274,22 +278,22 @@ def main():
     Rfac = 1.+1.e-10
     heps = 1.e-14
     semilatusr = 10.0    #affine = np.zeros(20000)
-    #xout = np.zeros((len(affine),8))
-    #hs = np.zeros(len(affine))
+    skypixels = misc.imread("skymap.png")
+    skypixelwidth = skypixels.shape[0]
+    skypixelheight = skypixels.shape[1]
+    telepixels = np.zeros((pixelwidth*pixelheight*3),dtype=np.uint8)
+
     for ypix in range(1,pixelheight,every):
         for xpix in range(1,pixelwidth,every):
             pixelcoord=np.array([xpix,ypix])
-            print(pixelcoord)
-            #pixelcoord=np.array([101,51]) #original, off by one?        
-            #pixelcoord = np.array([100,50])
             coords = initialize(pixelcoord,Rplane,pixelheight,pixelwidth,skypixelwidth,skypixelheight,imagewidth,imageheight,Rs).copy()
             #coords = initializeElliptical(eccentricity,semilatusr,Rs)
-            print coords
+            #print coords
             r=coords[1]
             lamb=0.
             color = 1
             n=0
-            f= open("OutDirBigger/output{0}_{1}.txt".format(xpix,ypix), "w")
+#            f= open("OutDirBigger/output{0}_{1}.txt".format(xpix,ypix), "w")
             phi=coords[3]
             #while(True):
             while(r<=Router):
@@ -302,10 +306,10 @@ def main():
                 #hs[i] = h
                 #xout[i,:]=coords
                 #lamb,coords =rk4(lamb,coords,deltalamb,geodesic,Rs)
-                outlist=np.array([lamb,coords[0],coords[1],coords[2],coords[3],coords[4],coords[5],coords[6],coords[7],h,yscale[0],yscale[1],yscale[2],yscale[3],yscale[4],yscale[4],yscale[5],yscale[6],yscale[7]])
-                for item in outlist:
-                    f.write("%s\t" % item)
-                f.write("\n")
+#                outlist=np.array([lamb,coords[0],coords[1],coords[2],coords[3],coords[4],coords[5],coords[6],coords[7],h,yscale[0],yscale[1],yscale[2],yscale[3],yscale[4],yscale[4],yscale[5],yscale[6],yscale[7]])
+#                for item in outlist:
+#                    f.write("%s\t" % item)
+#                f.write("\n")
                 lamb,coords,h=adaptiveRK4(lamb,coords,h,geodesic,linearMaxFunc,Rs,yscale,epsilon)
                 r=coords[1]
                 phi=coords[3]
@@ -318,8 +322,8 @@ def main():
                 n+=1
                 if((n%10000)==0): print(n,r,coords[2],phi,h)
             #I am not sure if the following is correct
-            print coords
-            f.close()
+            #print coords
+#            f.close()
             if(coords[2]<0.):
                 temp = (-coords[2])%(pi)
                 coords[2]=pi-temp
@@ -332,15 +336,38 @@ def main():
             else:
                 coords[3]%=(2.*pi)
         
-            if (color==1):
-                print("color=sky")
-            else:
-                print("color=blackhole")
+            #print(coords)
+            #print(xpix,ypix)
+            #if (color==1):
+                #print("color=sky")
+            #else:
+                #print("color=blackhole")
             rmRs2 = coords[1]-Rs
             testnull = -rmRs2/coords[1]*coords[4]*coords[4]+coords[5]*coords[5]*coords[1]/rmRs2+coords[1]*coords[1]*(coords[6]*coords[6]+sin(coords[2])*sin(coords[2])*coords[7]*coords[7])
-            print(testnull)
-            print(testnull/max(np.absolute(coords[4:8])))
+            #print(testnull)
+            #print(testnull/max(np.absolute(coords[4:8])))
+            #print(coords)
+            telestart = (xpix+ypix*pixelwidth)*3
+            if(color==1):
+                xout = int(coords[3]*skypixelwidth/2./pi)
+                yout = int(coords[2]*skypixelheight/pi)
+                skystart = (xout+yout *skypixelwidth)*3
+                #print(xout,yout)
 
+                #print(skypixels[xout,yout])
+                #telepixels[xpix,ypix]=skypixels[xout,yout]
+                #else do nothing
+            else:
+                telepixels[telestart:telestart+3]=(255,0,0)
+                #telepixels[xpix,ypix]=np.array([255,255,255])
+
+    #scipy.misc.imsave("telepixels.jpg",telepixels)                   
+    #png.from_array(telepixels,'L').save("teleview.png")
+    ftele = open("teleview.png", "w")
+    telewrite=png.Writer(width=pixelwidth,height=pixelheight,greyscale=False,alpha=False)
+    telewrite.write_array(ftele,telepixels)
+    ftele.close()
+    #scipy.imsave?
 #    pyplot.figure()
 #    pyplot.plot(affine,xout[:,0])
 #    pyplot.show()
