@@ -4,6 +4,15 @@ from matplotlib import pyplot,image
 import PIL, png
 from scipy import misc
 
+a=np.array([0, .2, .3, .6, 1., 7./8.])
+b=np.array([[0.,0.,0.,0.,0.],[.2,0.,0.,0.,0.],[3./40.,9./40.,0.,0.,0.],[3./10., -9./10., 6./5., 0., 0.],[-11./54., 2.5, -70./27., 35./27., 0.], [1631./55296., 175./512., 575./13824., 44275./110592., 253./4096.]])
+c = np.array([37./378., 0., 250./621., 125./594., 0., 512./1771.])
+cstar = np.array([2825./27648., 0., 18575./48384., 13525./55296., 277./14336., 0.25])
+dc = np.array([277./64512.,0.,-6925./370944.,6925./202752.,277./14336.,-277./7084.])
+lena=len(a)
+
+
+
 # t is lamb, affine parameter
 # y is u, four velocity, or x, four position
 
@@ -64,19 +73,13 @@ def initializeElliptical(eccentricity,semilatusr,Rs):
     return np.array([t,r2,theta,phi,ut,ur,utheta,uphi])
 
 def adaptiveRK4(t,y,h,func,maxfunc,arg,yscale,epsilon):
-    a=np.array([0, .2, .3, .6, 1., 7./8.])
-    b=np.array([[0.,0.,0.,0.,0.],[.2,0.,0.,0.,0.],[3./40.,9./40.,0.,0.,0.],[3./10., -9./10., 6./5., 0., 0.],[-11./54., 2.5, -70./27., 35./27., 0.], [1631./55296., 175./512., 575./13824., 44275./110592., 253./4096.]])
-    c = np.array([37./378., 0., 250./621., 125./594., 0., 512./1771.])
-    cstar = np.array([2825./27648., 0., 18575./48384., 13525./55296., 277./14336., 0.25])
-    dc = np.array([277./64512.,0.,-6925./370944.,6925./202752.,277./14336.,-277./7084.])
 #    fadapt = open("adaptout.txt", "a")
+    leny=len(y)
     safetyfac = 0.9
     pgrow =-0.20
     pshrink =-0.25
     errcon = 1.89e-4 #see NR in Fortran
     hnew=h/2.
-    lena=len(a)
-    leny=len(y)
     #hlast = h
     while True:
         # j and i are reversed from Numerical Recipes book (page 711)
