@@ -40,24 +40,13 @@ def initialize(pixelcoord,Rplane,pixelheight,pixelwidth,skypixelwidth,skypixelhe
 
     invr = 1./r
     invrsq = invr*invr
-    #rhosq = x*x + y*y
-    #facrrho= rhosq+r*r
-    #for this specific case, where ux = 1:
     ur = -x/r
-    #utheta = -x*z*z/sqrt(rhosq)/r/facrrho
-    #uphi = y/rhosq
     utheta = x*z*invr*invrsq*sqrt(1.-z*z*invrsq)
     uphi = -y/(x*x+y*y)
     rmRs = r-Rs
     st = sin(theta)
     ut = sqrt((ur*ur*r/rmRs+r*r*utheta*utheta+r*r*st*st*uphi*uphi)/rmRs*r)
     initcoords =np.array([t, r, theta, phi, ut, ur, utheta, uphi])
-#    coords = initcoords
-#    rmRs2 = coords[1]-Rs
-#    testnull = -rmRs2/coords[1]*coords[4]*coords[4]+coords[5]*coords[5]*coords[1]/rmRs2+coords[1]*coords[1]*(coords[6]*coords[6]+sin(coords[2])*sin(coords[2])*coords[7]*coords[7])
-    #testnull = -rmRs/r*ut*ut+ur*ur*r/rmRs+r*r*(utheta*utheta+st*st*uphi*uphi)
-    #print(testnull)
-    #print(testnull/max(np.absolute(initcoords[4:8])))
     return initcoords
 
 def initializeElliptical(eccentricity,semilatusr,Rs):
@@ -76,13 +65,13 @@ def initializeElliptical(eccentricity,semilatusr,Rs):
     return np.array([t,r2,theta,phi,ut,ur,utheta,uphi])
 
 def adaptiveRK4(t,y,h,func,maxfunc,arg,yscale,epsilon):
-#    fadapt = open("adaptout.txt", "a")
     leny=len(y)
     safetyfac = 0.9
     pgrow =-0.20
     pshrink =-0.25
     errcon = 1.89e-4 #see NR in Fortran
     hnew=h/2.
+    nsteps=0
     #hlast = h
     while True:
         # j and i are reversed from Numerical Recipes book (page 711)
@@ -102,8 +91,6 @@ def adaptiveRK4(t,y,h,func,maxfunc,arg,yscale,epsilon):
         yprime = y+np.sum(np.multiply(c,k),axis=1)
         yerr =  np.sum(np.multiply(dc,k),axis=1)
         yprimestar =np.copy(y)+ np.sum(np.multiply(cstar,k),axis=1)
-        #delta0 = np.absolute(np.multiply(epsilon,yscale))
-        #yerr = yprime - yprimestar
         errmax = maxfunc(yerr,yscale,yprime)
         errmax/=epsilon
         if (errmax>1):
@@ -111,31 +98,17 @@ def adaptiveRK4(t,y,h,func,maxfunc,arg,yscale,epsilon):
             if(hnew<0.1*h):
                 hnew=.1*h
             h=hnew
-#            outlist=np.array([t,yprime[0],yprime[1],yprime[2],yprime[3],yprime[4],yprime[5],yprime[6],yprime[7],h,0])
-#            for item in outlist:
-#                fadapt.write("%s\t" % item)
-#            fadapt.write("\n")
+            nsteps+=1
         else:
             if(errmax>errcon):
                 hnew = safetyfac*h*pow(errmax,pgrow)
             else:
                 hnew = 5.*h
-#            outlist=np.array([t,yprime[0],yprime[1],yprime[2],yprime[3],yprime[4],yprime[5],yprime[6],yprime[7],h,1])
-#            for item in outlist:
-#                fadapt.write("%s\t" % item)
-#            fadapt.write("\n")
-#            fadapt.close()
-            return t+h,yprimestar,hnew
-            #false break for testing
-            #break    
-            #problem has something to do with break conditions
-            #print("breaking")
-    #tprime = t+h
-    #print(h)
+            nsteps+=1
+            return nsteps,t+h,yprimestar,hnew
     tprime = t+h
-#    fadapt.close()
     return tprime,yprimestar,hnew
-#    return tprime,yprimestar,h
+
 
 def linearMaxFunc(yerr,yscale,yprime):
     errmax = max(np.absolute(yerr/yscale))
@@ -198,11 +171,13 @@ def integrateNullGeodesic(xpix, ypix, pixelheight,pixelwidth, skypixelheight,sky
     n=0
     h=hinit
     phi=coords[3]
+    totnsteps=0
     while(r<=Router):
         yscale =np.absolute(coords)+np.absolute(h*geodesic(lamb,coords,Rs))+tiny
-        lamb,coords,h=adaptiveRK4(lamb,coords,h,geodesic,linearMaxFunc,Rs,yscale,epsilon)
+        nsteps,lamb,coords,h=adaptiveRK4(lamb,coords,h,geodesic,linearMaxFunc,Rs,yscale,epsilon)
         r=coords[1]
         phi=coords[3]
+        totnsteps+=nsteps
         if (r<Rfac*Rs) and (h<heps):
             color = 0
             break
@@ -220,13 +195,11 @@ def integrateNullGeodesic(xpix, ypix, pixelheight,pixelwidth, skypixelheight,sky
     else:
         coords[3]%=(2.*pi)
     rmRs2 = coords[1]-Rs
-    #testnull = -rmRs2/coords[1]*coords[4]*coords[4]+coords[5]*coords[5]*coords[1]/rmRs2+coords[1]*coords[1]*(coords[6]*coords[6]+sin(coords[2])*sin(coords[2])*coords[7]*coords[7])
-    #if(abs(testnull)>1.e-7): print(xpix,ypix,"Null test failed")
     telestart = (xpix+ypix*pixelwidth)*3
     xout = int(coords[3]*skypixelwidth/2./pi)
     yout = int(coords[2]*skypixelheight/pi)
     skystart = (xout+yout *skypixelwidth)*3
-    return skystart,telestart,color
+    return totnsteps,skystart,telestart,color
 
 #parabola test
 def parabola(t,y,ab):
@@ -268,7 +241,7 @@ def test():
         y[n,:]=yn
         #tn,yn =rk4(tn,yn,h,sho,omega)
         #print(tn,yn,h,"hello")
-        tn,yn,h=adaptiveRK4(tn,yn,h,sho,linearMaxFunc,omega,yscale,epsilon)
+        nsteps,tn,yn,h=adaptiveRK4(tn,yn,h,sho,linearMaxFunc,omega,yscale,epsilon)
         #print(tn,yn,h)
     pyplot.figure()
     pyplot.xlabel("Time")
@@ -288,8 +261,6 @@ def main():
     pixelheight = 10
     every = 1
     deltalamb = 1.e-1
-    #epsilon = 1.e-6
-    #yscale = [500.,500.,pi,2.*pi,-1.,1.,1.,1.]
     imagewidth = 50;
     imageheight = 50;
     tiny = 1.e-30
@@ -297,7 +268,7 @@ def main():
     eccentricity = 0.2
     Rfac = 1.+1.e-10
     heps = 1.e-14
-    semilatusr = 10.0    #affine = np.zeros(20000)
+    semilatusr = 10.0  
     fsky = open("skymap.png","r")
     reader = png.Reader(fsky)
     skypixelwidth, skypixelheight, skypixels, metadata=reader.read_flat()
@@ -306,37 +277,60 @@ def main():
     skystartall = np.zeros((pixelwidth*pixelheight),dtype=np.uint32)
     telestartall = np.zeros((pixelwidth*pixelheight),dtype=np.uint32)
     colorall = np.zeros((pixelwidth*pixelheight),dtype=np.uint8)
-    
+
     comm = MPI.COMM_WORLD
     id= comm.Get_rank()
     wsize= comm.Get_size()
     wtimep = MPI.Wtime()
     numperprocess = pixelheight*pixelwidth/wsize
+    totnstepsall=np.zeros((wsize),dtype=np.uint32)
 
     skystart=np.zeros((numperprocess),dtype=np.int32)
     telestart=np.zeros((numperprocess),dtype=np.int32)
     color = np.zeros((numperprocess),dtype=np.int8)
+    totnsteps=np.zeros((numperprocess),dtype=np.int32)
+    trk4all=np.zeros((numperprocess),dtype=np.float)
+    trk4=float("inf")
     for index in range(numperprocess):
         ypix = int((id*numperprocess+index)/pixelwidth)
         xpix = (id*numperprocess+index)%pixelwidth
-        skystart[index],telestart[index],color[index]=integrateNullGeodesic(xpix, ypix, pixelheight,pixelwidth, skypixelheight,skypixelwidth,imagewidth,imageheight,Rs,Router,Rplane,eccentricity, semilatusr, epsilon, tiny, hinit,Rfac,heps)
-    
+        tstartrk4=MPI.Wtime()
+        totnsteps[index],skystart[index],telestart[index],color[index]=integrateNullGeodesic(xpix, ypix, pixelheight,pixelwidth, skypixelheight,skypixelwidth,imagewidth,imageheight,Rs,Router,Rplane,eccentricity, semilatusr, epsilon, tiny, hinit,Rfac,heps)
+        tendrk4=MPI.Wtime()
+        trk4=min(trk4,(tendrk4-tstartrk4)/float(totnsteps[index]))
+    totnstepsmax=max(totnsteps)
+    print(trk4)
+   
+
     comm.Barrier()
+    if id==0:
+        totnstepsmaxall=0
+    else:
+        totnstepsmaxall=None
+    comm.Barrier()
+    totnstepsmaxall=comm.reduce(totnstepsmax,op=MPI.MAX,root=0)
     comm.Gatherv(skystart,skystartall,root=0)
     comm.Gatherv(telestart, telestartall, root=0)
     comm.Gatherv(color,colorall, root=0)
+    trk4min=comm.reduce(trk4,op=MPI.MIN,root=0)
     comm.Barrier()
-    MPI.Finalize()  
-    for index in range(pixelheight*pixelwidth):
+    if id==0:
+        for index in range(pixelheight*pixelwidth):
 
-        if(colorall[index]==1):
-            telepixels[telestartall[index]:telestartall[index]+3]=skypixels[skystartall[index]:skystartall[index]+3]
-        else:
-            telepixels[telestartall[index]]=255 #leave other two indices zero,red
-    ftele = open("teleview.png", "w")
-    telewrite=png.Writer(width=pixelwidth,height=pixelheight,greyscale=False,alpha=False)
-    telewrite.write_array(ftele,telepixels)
-    ftele.close()
+            if(colorall[index]==1):
+                telepixels[telestartall[index]:telestartall[index]+3]=skypixels[skystartall[index]:skystartall[index]+3]
+            else:
+                telepixels[telestartall[index]]=255 #leave other two indices zero,red
+        ftele = open("teleview.png", "w")
+        telewrite=png.Writer(width=pixelwidth,height=pixelheight,greyscale=False,alpha=False)
+        telewrite.write_array(ftele,telepixels)
+        ftele.close()
     fsky.close()
+    if id==0:
+        print("Maximum number of integration steps taken is",totnstepsmaxall)
+        print("The time for a single step of the RK4 is",trk4min)
+    MPI.Finalize()
+
+
 main()
 
