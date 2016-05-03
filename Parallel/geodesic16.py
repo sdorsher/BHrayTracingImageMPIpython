@@ -303,29 +303,16 @@ def main():
     skypixelwidth, skypixelheight, skypixels, metadata=reader.read_flat()
     telepixels = np.zeros((pixelwidth*pixelheight*3),dtype=np.uint8)
     colorpixels = np.zeros((pixelwidth*pixelheight),dtype=np.uint8)
-    skystartall = np.zeros((pixelwidth*pixelheight),dtype=np.uint8)
-    telestartall = np.zeros((pixelwidth*pixelheight),dtype=np.uint8)
+    skystartall = np.zeros((pixelwidth*pixelheight),dtype=np.uint32)
+    telestartall = np.zeros((pixelwidth*pixelheight),dtype=np.uint32)
     colorall = np.zeros((pixelwidth*pixelheight),dtype=np.uint8)
     
-
     comm = MPI.COMM_WORLD
     id= comm.Get_rank()
     wsize= comm.Get_size()
     wtimep = MPI.Wtime()
     numperprocess = pixelheight*pixelwidth/wsize
-#    skystart=np.zeros((numperprocess),dtype=np.int32)
-    
 
-#    if id==0:
-#        print("0")
-#        for proc in range(wsize):
-#            comm.isend(telepixels[proc*numperprocess*3:(proc+1)*numperprocess*3],dest=proc,tag=0)
-#            comm.isend(skypixels[proc*numperprocess*3:(proc+1)*numperprocess*3],dest=proc,tag=1)
-#            comm.isend(colorpixels[proc*numperprocess:(proc+1)*numperprocess],dest=proc,tag=2)
- 
-
-#    else:
-#        skystart=comm.irecv(source=0,tag=1)
     skystart=np.zeros((numperprocess),dtype=np.int32)
     telestart=np.zeros((numperprocess),dtype=np.int32)
     color = np.zeros((numperprocess),dtype=np.int8)
@@ -341,7 +328,7 @@ def main():
     comm.Barrier()
     MPI.Finalize()  
     for index in range(pixelheight*pixelwidth):
-        print(colorall[index], pixelheight*pixelwidth/wsize)
+
         if(colorall[index]==1):
             telepixels[telestartall[index]:telestartall[index]+3]=skypixels[skystartall[index]:skystartall[index]+3]
         else:
