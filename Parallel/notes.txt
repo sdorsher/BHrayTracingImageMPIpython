@@ -1,0 +1,1 @@
+should have a factor of four speedup for n=4. about 90% paralllel. can't measure parallelization factor with one processor obviously. getting factor of 4/3 speedup for n=2,3,4. difference probably due to I/O or cache latency? Look at model more thoroughly tomorrow. Time I/O and make cache size estimates tomorrow.
