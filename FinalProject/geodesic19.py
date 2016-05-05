@@ -1,8 +1,6 @@
 import numpy as np
 from math import pi,sin,cos,sqrt,atan,acos
-from matplotlib import pyplot,image
-from png import Reader,Writer
-from scipy import misc
+#from scipy import misc 
 from sys import argv
 from mpi4py import MPI
 from time import time, ctime
@@ -190,9 +188,12 @@ def main():
     id= comm.Get_rank()
     wsize= comm.Get_size()    
     tstart = MPI.Wtime()
-    fsky = open("skymap.png","r")
-    reader = Reader(fsky)
-    skypixelwidth, skypixelheight, skypixels, metadata=reader.read_flat()
+    #fsky = open("skymap.png","r")
+    #reader = Reader(fsky)
+    #skypixelwidth, skypixelheight, skypixels, metadata=reader.read_flat()
+    skypixelwidth = 4096
+    skypixelheight = 2048
+    skypixels = np.zeros((skypixelwidth*skypixelheight*3),dtype=np.uint8)
     pixelwidth = int(argv[1])
     pixelheight = int(argv[2])
     tskymapstart = MPI.Wtime()
@@ -214,8 +215,8 @@ def main():
     Rs = 2.
     every = 1
     deltalamb = 1.e-1
-    imagewidth = 50;
-    imageheight = 50;
+    imagewidth = 50.;
+    imageheight = 50.;
     tiny = 1.e-30
     epsilon=1.e-8
     eccentricity = 0.2
@@ -272,15 +273,15 @@ def main():
                 telepixels[telestartall[index]]=255 #leave other two indices zero,red
         tindexend = MPI.Wtime()
         tindex = tindexend-tindexstart
-    if id==0:
-        twritestart = MPI.Wtime()
-        ftele = open('teleview_{pw}_{ph}_{ws}.png'.format(pw=pixelwidth,ph=pixelheight,ws=wsize), "w")
-        telewrite=Writer(width=pixelwidth,height=pixelheight,greyscale=False,alpha=False)
-        telewrite.write_array(ftele,telepixels)
-        ftele.close()
-        twriteend=MPI.Wtime()
-        twrite = twriteend-twritestart
-    fsky.close()
+    #if id==0:
+        #twritestart = MPI.Wtime()
+        #ftele = open('teleview_{pw}_{ph}_{ws}.png'.format(pw=pixelwidth,ph=pixelheight,ws=wsize), "w")
+        #telewrite=Writer(width=pixelwidth,height=pixelheight,greyscale=False,alpha=False)
+        #telewrite.write_array(ftele,telepixels)
+        #ftele.close()
+        #twriteend=MPI.Wtime()
+        #twrite = twriteend-twritestart
+    #fsky.close()
     comm.Barrier()
     tmax = comm.reduce(tall,MPI.MAX,root=0)
     tpercparmin = comm.reduce(tpercpar/tall,op=MPI.MIN,root=0)
@@ -297,7 +298,7 @@ def main():
 #        print("The time for a single step of the RK4 is",trk4min)
 #        print("Total runtime = ",tmax)
 #        print("Fraction parallel = ", tpercparmin)
-        print pixelwidth,pixelheight,wsize,totnstepsmaxall,trk4min,tmax,tpercparmin, tindex, twrite, tskymapall, tteleall
+        print pixelwidth,pixelheight,wsize,totnstepsmaxall,trk4min,tmax,tpercparmin, tindex, tskymapall, tteleall
 
     MPI.Finalize()
 main()
