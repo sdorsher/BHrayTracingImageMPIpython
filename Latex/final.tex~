@@ -1,0 +1,108 @@
+\documentclass{article}
+\usepackage{listings,graphicx}
+\begin{document}
+\title{A simulated telescope's view of the sky in the presence of a Schwarzschild blackhole}
+\author{Steven Dorsher}
+
+\maketitle
+
+\section{Introduction}
+With the LIGO detection, many people are interested in the question of
+how blackholes make the sky appear to the external
+observer. Understanding the question of how they will lens the
+presence of stars behind them could help make blackholes without
+accretion disks or partners indirectly observable. The problem of a
+Schwarzschild blackhole in a vaccuum with light passing by it from a
+static field of stars is not a particularly challenging problem and
+appears to have been solved numerically in the 1970's or 1980's,
+though I coudn't find a specific source. Many people since then have
+solved more difficult problems for rotating, perturbed, or
+asymptotically cosmological spacetimes. 
+
+In this project, I numerically integrate the eight coupled ordinary
+differential equations governing light rays (null geodesics) backward
+from a telescope plane near an ordinary (no spin or charge) in a
+vaccuum. I iterate over many pixels in the telescope plane, and
+determine their origin on the ``sky'' at some finite distance
+away. From that, I reconstruct a png file of what the sky looks like
+in the presence of a Schwarzschild black hole, at the location of the
+Earth, and a telescope, $700 M$ away. Henceforth, the mass of the
+blackhole will simply be referred to as $M$. I will use units of $c=G=1$.
+
+
+\section{The geodesic equations}
+
+\subsection{Overview}
+In general relativity, the differential equations governing the path matter or light takes in a vacuum are called the geodesic equations. They are second order rank four tensor equations, which are separable, resulting in eight coupled ordinary differential equations. The geodesic equation states that a free particle, which feels no forces other than the curvature of spacetime that causes gravity, follows a path that is the shortest path between two points. 
+
+\subsection{Computation}
+
+The geodesic equation is given by
+\begin{equation}
+\frac{d^2x^\mu}{d\lambda^2}=-\Gamma^\mu_{\alpha\beta}\frac{dx^\alpha}{d\lambda}\frac{dx^\beta}{d\lambda}
+\label{eqn:geodesic}
+\end{equation}
+Here $x^\mu$ is the $\mu$th component of a spacetime four-vector, $\Gamma^\mu_{\alpha\beta}$ are the Christoffel connections, and $\lambda$ is an affine parameter that plays the role of proper time for a null geodesic, since a null geodesic has no rest frame. There is an implicit summation convention over repeated indices, where upper and lower indices are connected by the metric $g_{\mu\nu}$ and the inverse metric $\g^{\mu\nu}. 
+
+The metric determines the distance between two points in a curved
+spacetime. In a flat spacetime like the one near Earth (far away from
+relativistic sources), the Minkowski metric is
+
+\begin{equation}
+ds^2 = -dt^2 + dx^2 + dy^2 + dz^2 = -dt^2 + dr^2 + r^2 (d\theta^2 + \sin^2\theta d\phi^2)
+\label{eqn:Minkowski}
+\end{equation}
+
+In matrix form this can be written:
+
+\begin{equation}
+\eta_{\mu\nu}=\eta^{\mu\nu}=
+\begin{pmatrix}
+-1 &0 &0 &0\\
+0 & 1 &0 &0\\
+0 & 0 &1 &0\\
+0 & 0 &0 &1
+\end{pmatrix}
+\label{eqn:eta}
+\end{equation}
+
+In the Schwarzschild metric, 
+
+%\begin{equation}
+%\g_{\mu\nu}
+%\begin{pmatrix}
+
+
+
+
+
+\subsection{Result}
+
+\section{The adaptive fourth order Runga-Kutta method}
+\subsection{Method}
+\subsection{Testing using a simple harmonic oscillator ODE}
+
+\section{Testing the geodesic equations with orbits with elipticity}
+\subsection{Expected characteristics of these orbits}
+\subsection{Initial data}
+\subsection{Results}
+
+\section{Null geodesic initial data}
+\subsection{Definition of a null geodesic}
+\subsection{Perpendicularity to the origin plane}
+\subsection{The resulting constraints}
+\subsection{End conditions: inside the horizon or outside the sky radius}
+\subsection{The resulting orbits} %100 integrations plotted with splot
+
+\section{Generating a telescope image}
+\subsection{Flat row flat pixel png format}
+\subsection{Connecting theta and phi to pixels on the sky image}
+\subsection{Making the blackhole red}
+\subsection{Serial results}
+
+
+\section{Profiling}
+\subsection{Serial code profile}
+\subsection{What to parallelize?}
+
+\end{document}
